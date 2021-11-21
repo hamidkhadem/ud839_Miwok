@@ -1,9 +1,12 @@
 package com.example.android.miwok;
 
-public class Word {
+public class Word<NO_IMAGE_PROVIDED> {
     private String mDefaultTranslation;
     private String mMiwokTranslation;
     private int mImageResourceId = 0;
+    private static final int NO_IMAGE_PROVIDED = -1;
+    //Add variable for source id of audio word
+    private int mIdOfAudio;
 
     public Word(String defaultTranslation, String miwokTranslation){
         mDefaultTranslation = defaultTranslation;
@@ -30,9 +33,8 @@ public class Word {
     }
 
     public boolean hasImage(){
-        if(mImageResourceId == 0)
-            return false;
-        else
-            return true;
+        return mImageResourceId != NO_IMAGE_PROVIDED;
     }
+
+
 }

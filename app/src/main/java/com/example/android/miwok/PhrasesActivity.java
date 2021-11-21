@@ -28,7 +28,7 @@ public class PhrasesActivity extends AppCompatActivity {
 
 
         //Create specific adapter for lis
-        WordAdapter wordAdapter = new WordAdapter(this,words);
+        WordAdapter wordAdapter = new WordAdapter(this,words, R.color.category_phrases);
         //Create listview and add adapter to it
         ListView listView = findViewById(R.id.list);
         listView.setAdapter(wordAdapter);

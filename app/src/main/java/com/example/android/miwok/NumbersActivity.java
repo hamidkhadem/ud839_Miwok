@@ -19,6 +19,8 @@ package com.example.android.miwok;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.view.View;
@@ -31,6 +33,22 @@ public class NumbersActivity extends AppCompatActivity {
 
     //Create media Player
     MediaPlayer mediaPlayer;
+    //Create Audio manger
+    AudioManager audioManager;
+    private AudioManager.OnAudioFocusChangeListener mAudioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+        @Override
+        public void onAudioFocusChange(int focusChange) {
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT ||
+                    focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                mediaPlayer.pause();
+                mediaPlayer.seekTo(0);
+            } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+                mediaPlayer.start();
+            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                releaseMediaPlayer();
+            }
+        }
+    };
 
     /**
      * This listener gets triggered when the {@link MediaPlayer} has completed
@@ -49,9 +67,16 @@ public class NumbersActivity extends AppCompatActivity {
         if(mediaPlayer != null){
             mediaPlayer.release();
             mediaPlayer = null;
+            audioManager.abandonAudioFocus(mAudioFocusChangeListener);
         }
     }
 
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        releaseMediaPlayer();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,6 +129,9 @@ public class NumbersActivity extends AppCompatActivity {
         Log.v("NumbersActivity", "Word at index 9: " + words.get(9));
 */
 
+        //initials audio manager
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+
         //Creat ArrayAapter
         ArrayList<Word> words = new ArrayList<Word>();
         words.add(new Word("one", "lutti", R.drawable.number_one, R.raw.number_one));
@@ -132,16 +160,20 @@ public class NumbersActivity extends AppCompatActivity {
                 //release media player
                 releaseMediaPlayer();
 
-                //find the word that click
-                Word word = words.get(position);
-                //prepare mediaPlayer
-                mediaPlayer = MediaPlayer.create(NumbersActivity.this , word.getmAudioResourceId());
-                //play audio
-                mediaPlayer.start();
+                int result = audioManager.requestAudioFocus(mAudioFocusChangeListener,
+                        AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
 
-                //set on completion
-                mediaPlayer.setOnCompletionListener(mCompletionListener);
+                if(result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                    //find the word that click
+                    Word word = words.get(position);
+                    //prepare mediaPlayer
+                    mediaPlayer = MediaPlayer.create(NumbersActivity.this, word.getmAudioResourceId());
+                    //play audio
+                    mediaPlayer.start();
 
+                    //set on completion
+                    mediaPlayer.setOnCompletionListener(mCompletionListener);
+                }
             }
         });
 

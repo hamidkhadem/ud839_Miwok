@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+
 import java.util.ArrayList;
 
 public class ColorsActivity extends AppCompatActivity {
@@ -17,6 +18,20 @@ public class ColorsActivity extends AppCompatActivity {
     MediaPlayer mediaPlayer;
     //Create Audio manger
     AudioManager audioManager;
+    private AudioManager.OnAudioFocusChangeListener mAudioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+        @Override
+        public void onAudioFocusChange(int focusChange) {
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT ||
+                    focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                mediaPlayer.pause();
+                mediaPlayer.seekTo(0);
+            } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+                mediaPlayer.start();
+            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                releaseMediaPlayer();
+            }
+        }
+    };
 
     /**
      * This listener gets triggered when the {@link MediaPlayer} has completed
@@ -32,17 +47,27 @@ public class ColorsActivity extends AppCompatActivity {
 
 
     private void releaseMediaPlayer() {
-        if(mediaPlayer != null){
+        if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
+            audioManager.abandonAudioFocus(mAudioFocusChangeListener);
         }
     }
 
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        releaseMediaPlayer();
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.word_list);
+
+        //initials audio manager
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
         //Creat ArrayAapter
         ArrayList<Word> words = new ArrayList<Word>();
@@ -56,7 +81,7 @@ public class ColorsActivity extends AppCompatActivity {
         words.add(new Word("mustard yellow", "weṭeṭṭi", R.drawable.color_mustard_yellow, R.raw.color_mustard_yellow));
 
         //Create specific adapter for lis
-        WordAdapter wordAdapter = new WordAdapter(this,words, R.color.category_colors);
+        WordAdapter wordAdapter = new WordAdapter(this, words, R.color.category_colors);
         //Create listview and add adapter to it
         ListView listView = findViewById(R.id.list);
         listView.setAdapter(wordAdapter);
@@ -70,16 +95,24 @@ public class ColorsActivity extends AppCompatActivity {
 
                 //find the word that click
                 Word word = words.get(position);
-                //prepare mediaPlayer
-                mediaPlayer = MediaPlayer.create(ColorsActivity.this , word.getmAudioResourceId());
-                //play audio
-                mediaPlayer.start();
 
-                //set on completion
-                mediaPlayer.setOnCompletionListener(mCompletionListener);
+                //request audio focus
+                int result = audioManager.requestAudioFocus(mAudioFocusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+
+                if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                    //prepare mediaPlayer
+                    mediaPlayer = MediaPlayer.create(ColorsActivity.this, word.getmAudioResourceId());
+                    //play audio
+                    mediaPlayer.start();
+
+                    //set on completion
+                    mediaPlayer.setOnCompletionListener(mCompletionListener);
+                }
 
             }
         });
+
+
 
     }
 
